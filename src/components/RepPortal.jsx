@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { KPIS, AFFIRMATIONS, hitAnyTarget } from '../config.js';
-import { getRepDay, adjustCount, markCelebrated, todayKey } from '../lib/storage.js';
+import { getRepDay, adjustCount, markCelebrated, clearRepDay, todayKey } from '../lib/storage.js';
 import KPICard from './KPICard.jsx';
 import DailyStatus from './DailyStatus.jsx';
 import CelebrationModal from './CelebrationModal.jsx';
@@ -9,12 +9,10 @@ import Leaderboard from './Leaderboard.jsx';
 export default function RepPortal({ rep, onExit }) {
   const dk = todayKey();
   const [record, setRecord] = useState({ counts: {}, celebrated: {} });
-  const [celebration, setCelebration] = useState(null); // { kpiLabel, message }
+  const [celebration, setCelebration] = useState(null);
   const [refreshSignal, setRefreshSignal] = useState(0);
   const loaded = useRef(false);
 
-  // Load today's saved progress on mount (auto "daily reset": each date
-  // is its own bucket, so a new day simply starts at zero — history stays).
   useEffect(() => {
     getRepDay(dk, rep.id).then((rec) => {
       setRecord(rec);
@@ -27,19 +25,26 @@ export default function RepPortal({ rep, onExit }) {
     setRecord({ ...rec });
     setRefreshSignal((s) => s + 1);
 
-    // Celebration fires the FIRST time a KPI crosses its target each day
     const kpi = KPIS.find((k) => k.key === kpiKey);
-    if (
-      delta > 0 &&
-      rec.counts[kpiKey] >= kpi.target &&
-      !rec.celebrated[kpiKey]
-    ) {
+    if (delta > 0 && rec.counts[kpiKey] >= kpi.target && !rec.celebrated[kpiKey]) {
       const updated = await markCelebrated(dk, rep.id, kpiKey);
       setRecord({ ...updated });
       const line = AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)];
       setCelebration({ kpiLabel: kpi.label, message: line(kpi.label) });
-      if (navigator.vibrate) navigator.vibrate([60, 40, 120]); // little buzz on Android
+      if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
     }
+  };
+
+  // Reset today's numbers for THIS rep on THIS phone. Asks twice so
+  // nobody nukes a real day by accident. History is not affected.
+  const handleReset = async () => {
+    const sure = window.confirm(
+      `Reset ALL of today's numbers for ${rep.name}? This cannot be undone.`
+    );
+    if (!sure) return;
+    const rec = await clearRepDay(dk, rep.id);
+    setRecord(rec);
+    setRefreshSignal((s) => s + 1);
   };
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -50,7 +55,6 @@ export default function RepPortal({ rep, onExit }) {
 
   return (
     <main className="flex-1 animate-slideup space-y-4">
-      {/* Rep identity bar */}
       <div className="flex items-center gap-3">
         <span
           className="h-14 w-14 rounded-2xl flex items-center justify-center text-2xl"
@@ -68,7 +72,6 @@ export default function RepPortal({ rep, onExit }) {
 
       <DailyStatus won={hitAnyTarget(record.counts)} />
 
-      {/* KPI cards */}
       <div className="space-y-3">
         {KPIS.map((kpi) => (
           <KPICard
@@ -81,6 +84,15 @@ export default function RepPortal({ rep, onExit }) {
       </div>
 
       <Leaderboard refreshSignal={refreshSignal} />
+
+      <button
+        onClick={handleReset}
+        className="w-full rounded-xl py-3 text-sm font-semibold text-red-400/80
+                   bg-imperial-slate border border-red-400/30
+                   active:scale-[0.98] transition-transform"
+      >
+        Reset my day
+      </button>
 
       {celebration && (
         <CelebrationModal
