@@ -10,8 +10,8 @@
 // Historical data is stored by id, so don't reuse old ids for new people.
 export const REPS = [
   { id: 'noah', name: 'Noah', emoji: '👑', color: '#F59E0B' },
-  { id: 'rep1', name: 'Rep 1', emoji: '🔨', color: '#7C3AED' },
-  { id: 'rep2', name: 'Rep 2', emoji: '⚡', color: '#22C55E' },
+  { id: 'joe', name: 'Joe', emoji: '🔨', color: '#7C3AED' },
+  { id: 'zack', name: 'Zack', emoji: '⚡', color: '#22C55E' },
   { id: 'rep3', name: 'Rep 3', emoji: '🏠', color: '#3B82F6' },
   { id: 'rep4', name: 'Rep 4', emoji: '🚀', color: '#EF4444' },
 ];
