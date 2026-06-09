@@ -148,3 +148,13 @@ export async function getRange(dateKeys) {
 // Firebase works the same way — swap readAll/writeAll for Firestore
 // reads/writes keyed by date + repId.
 // ============================================================
+// Wipe ONE rep's counts for ONE day (used by the "reset my day" button).
+// Other reps and all other dates are untouched.
+export async function clearRepDay(dateKey, repId) {
+  const all = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  if (all[dateKey]) {
+    delete all[dateKey][repId];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  }
+  return { counts: {}, celebrated: {} };
+}
